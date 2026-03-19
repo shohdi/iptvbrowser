@@ -20,6 +20,7 @@ namespace IptvXbox.App
         private readonly AppSession _session = AppSession.Current;
         private readonly MediaPlayer _player = new MediaPlayer();
         private CancellationTokenSource _searchCts;
+        private bool _isViewReady;
         private CatalogItem _selectedItem;
         private SeriesEpisode _selectedEpisode;
 
@@ -36,6 +37,7 @@ namespace IptvXbox.App
 
         private async void SearchPage_Loaded(object sender, RoutedEventArgs e)
         {
+            _isViewReady = true;
             _session.PropertyChanged += Session_PropertyChanged;
             await _session.LoadInitialLocalDataAsync();
             await ApplyFiltersAsync();
@@ -43,12 +45,18 @@ namespace IptvXbox.App
 
         private void SearchPage_Unloaded(object sender, RoutedEventArgs e)
         {
+            _isViewReady = false;
             _session.PropertyChanged -= Session_PropertyChanged;
             _searchCts?.Cancel();
         }
 
         private void Session_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
+            if (!_isViewReady)
+            {
+                return;
+            }
+
             if (e.PropertyName == nameof(AppSession.AllItems) ||
                 e.PropertyName == nameof(AppSession.StatusMessage) ||
                 e.PropertyName == nameof(AppSession.IsCatalogLoaded))
@@ -63,7 +71,11 @@ namespace IptvXbox.App
 
         private async Task ApplyFiltersAsync()
         {
-            if (SearchTextBox == null || ContentTypeComboBox == null || SortComboBox == null)
+            if (!_isViewReady ||
+                SearchTextBox == null ||
+                ContentTypeComboBox == null ||
+                SortComboBox == null ||
+                StatusTextBlock == null)
             {
                 return;
             }
