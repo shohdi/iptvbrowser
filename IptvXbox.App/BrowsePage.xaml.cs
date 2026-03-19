@@ -183,7 +183,7 @@ namespace IptvXbox.App
                 return;
             }
 
-            PlayUrl(_session.BuildStreamUrl(_selectedItem), useVlc: true);
+            OpenVlcOverlay(_session.BuildStreamUrl(_selectedItem));
         }
 
         private void BackButton_Click(object sender, RoutedEventArgs e)
@@ -230,7 +230,7 @@ namespace IptvXbox.App
                 return;
             }
 
-            PlayUrl(_session.BuildSeriesEpisodeUrl(_selectedEpisode), useVlc: true);
+            OpenVlcOverlay(_session.BuildSeriesEpisodeUrl(_selectedEpisode));
         }
 
         private void PlayUrl(string url, bool useVlc)
@@ -256,6 +256,16 @@ namespace IptvXbox.App
             _player.Source = MediaSource.CreateFromUri(new Uri(url));
             _player.Play();
             StatusTextBlock.Text = "Playback started.";
+        }
+
+        private void OpenVlcOverlay(string url)
+        {
+            MainPage.Current?.ShowOverlay(typeof(VlcFullscreenPage), new VlcPlaybackRequest
+            {
+                Title = _selectedItem?.Name ?? "VLC",
+                Subtitle = _selectedItem?.Subtitle ?? url,
+                Url = url
+            });
         }
 
         private void ShowBuiltinPlayer()
