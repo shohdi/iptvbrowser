@@ -39,12 +39,77 @@ namespace IptvXbox.App.Services
                 foreach (SeriesItem series in response.Series)
                 {
                     string category = ResolveCategory(seriesCategories, series.CategoryId, "Series");
-                    string subtitle = string.IsNullOrWhiteSpace(series.Plot) ? $"Series • {category}" : $"Series • {category} • {series.Plot}";
+                    string subtitle = string.IsNullOrWhiteSpace(series.Plot) ? $"Series - {category}" : $"Series - {category} - {series.Plot}";
                     items.Add(CreateItem(series.Name, category, "Series", 0, series.SeriesId, series.Cover, "mp4", subtitle));
                 }
             }
 
             return items;
+        }
+
+        public static BrowseNode BuildBrowseTree(IEnumerable<CatalogItem> items)
+        {
+            var root = new BrowseNode
+            {
+                Title = "Browse Library",
+                Subtitle = "Choose Live, Movies, or Series."
+            };
+
+            foreach (IGrouping<string, CatalogItem> kindGroup in items
+                .GroupBy(item => item.StreamKind)
+                .OrderBy(group => GetKindOrder(group.Key)))
+            {
+                string groupTitle = GetKindTitle(kindGroup.Key);
+                var groupNode = new BrowseNode
+                {
+                    Title = groupTitle,
+                    Subtitle = $"Open a {groupTitle.ToLowerInvariant()} category."
+                };
+
+                foreach (IGrouping<string, CatalogItem> categoryGroup in kindGroup
+                    .GroupBy(item => item.CategoryName)
+                    .OrderBy(group => group.Key))
+                {
+                    var categoryNode = new BrowseNode
+                    {
+                        Title = categoryGroup.Key,
+                        Subtitle = $"{categoryGroup.Count()} items"
+                    };
+
+                    foreach (CatalogItem item in categoryGroup.OrderBy(entry => entry.SortName))
+                    {
+                        categoryNode.Cards.Add(new BrowseCard
+                        {
+                            Title = item.Name,
+                            Subtitle = item.Subtitle,
+                            ImageUrl = item.ImageUrl,
+                            Badge = item.StreamKindLabel,
+                            Kind = "item",
+                            Item = item
+                        });
+                    }
+
+                    groupNode.Cards.Add(new BrowseCard
+                    {
+                        Title = categoryGroup.Key,
+                        Subtitle = $"{categoryGroup.Count()} items",
+                        Badge = groupTitle,
+                        Kind = "category",
+                        TargetNode = categoryNode
+                    });
+                }
+
+                root.Cards.Add(new BrowseCard
+                {
+                    Title = groupTitle,
+                    Subtitle = $"{kindGroup.Count()} items",
+                    Badge = "Section",
+                    Kind = "group",
+                    TargetNode = groupNode
+                });
+            }
+
+            return root;
         }
 
         public static string Normalize(string value)
@@ -94,7 +159,7 @@ namespace IptvXbox.App.Services
                 SeriesId = seriesId,
                 ImageUrl = imageUrl,
                 ContainerExtension = string.IsNullOrWhiteSpace(containerExtension) ? "mp4" : containerExtension,
-                Subtitle = subtitle ?? $"{streamKind} • {category}"
+                Subtitle = subtitle ?? $"{streamKind} - {category}"
             };
         }
 
@@ -106,6 +171,36 @@ namespace IptvXbox.App.Services
             }
 
             return fallback;
+        }
+
+        private static int GetKindOrder(string streamKind)
+        {
+            switch (streamKind)
+            {
+                case "Live":
+                    return 0;
+                case "Movie":
+                    return 1;
+                case "Series":
+                    return 2;
+                default:
+                    return 3;
+            }
+        }
+
+        private static string GetKindTitle(string streamKind)
+        {
+            switch (streamKind)
+            {
+                case "Live":
+                    return "Live";
+                case "Movie":
+                    return "Movies";
+                case "Series":
+                    return "Series";
+                default:
+                    return streamKind;
+            }
         }
     }
 }

@@ -1,0 +1,64 @@
+<Page
+    x:Class="IptvXbox.App.LoginPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="{StaticResource ShellBackgroundBrush}">
+
+    <ScrollViewer>
+        <Grid Padding="28">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <StackPanel Spacing="8">
+                <TextBlock Text="Login" FontSize="34" FontWeight="SemiBold" />
+                <TextBlock Text="Connect to your IPTV server and keep the last server, username, and password on this device." Opacity="0.82" />
+            </StackPanel>
+
+            <Grid Grid.Row="1" Margin="0,24,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.4*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Border Margin="0,0,18,0"
+                        Padding="22"
+                        Background="{StaticResource SurfaceBrush}"
+                        CornerRadius="20">
+                    <StackPanel Spacing="14">
+                        <TextBlock Text="Connection" FontSize="22" FontWeight="SemiBold" />
+                        <TextBox x:Name="ServerTextBox" Header="Server" PlaceholderText="http://server:port" />
+                        <TextBox x:Name="UsernameTextBox" Header="Username" />
+                        <PasswordBox x:Name="PasswordTextBox" Header="Password" />
+
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Button Content="Refresh API" Click="RefreshApiButton_Click" />
+                            <Button Content="Load channels.json" Click="LoadLocalFileButton_Click" />
+                        </StackPanel>
+
+                        <TextBlock x:Name="StatusTextBlock" TextWrapping="WrapWholeWords" />
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="1"
+                        Padding="22"
+                        Background="{StaticResource SurfaceBrush}"
+                        CornerRadius="20">
+                    <StackPanel Spacing="16">
+                        <TextBlock Text="What changed" FontSize="22" FontWeight="SemiBold" />
+                        <TextBlock Text="Page 1 is now focused on logging in and loading the IPTV catalog." TextWrapping="WrapWholeWords" />
+                        <TextBlock Text="After loading, switch to Browse for card-based navigation or Search for the current searchable list experience." TextWrapping="WrapWholeWords" />
+                        <TextBlock x:Name="LoadedSummaryTextBlock"
+                                   Text="No catalog loaded yet."
+                                   Foreground="{StaticResource AccentBrush}"
+                                   TextWrapping="WrapWholeWords" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+    </ScrollViewer>
+</Page>
