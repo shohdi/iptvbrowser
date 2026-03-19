@@ -2,9 +2,12 @@ using IptvXbox.App.Models;
 using LibVLCSharp.Platforms.UWP;
 using LibVLCSharp.Shared;
 using System;
+using Windows.UI.Core;
+using Windows.System;
 using Windows.UI.ViewManagement;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Navigation;
 using VlcMediaPlayer = LibVLCSharp.Shared.MediaPlayer;
 
@@ -29,6 +32,7 @@ namespace IptvXbox.App
         {
             base.OnNavigatedTo(e);
             _pendingRequest = e.Parameter as VlcPlaybackRequest;
+            TitleTextBlock.Text = _pendingRequest?.Title ?? "VLC";
             TryStartPlayback();
         }
 
@@ -60,6 +64,7 @@ namespace IptvXbox.App
             {
                 _isInFullScreenMode = ApplicationView.GetForCurrentView().TryEnterFullScreenMode();
             }
+            Window.Current.CoreWindow.KeyDown += CoreWindow_KeyDown;
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
@@ -70,6 +75,7 @@ namespace IptvXbox.App
 
         private void VlcFullscreenPage_Unloaded(object sender, RoutedEventArgs e)
         {
+            Window.Current.CoreWindow.KeyDown -= CoreWindow_KeyDown;
             ExitFullScreenMode();
             _vlcPlayer?.Stop();
             _currentMedia?.Dispose();
@@ -87,6 +93,86 @@ namespace IptvXbox.App
                 ApplicationView.GetForCurrentView().ExitFullScreenMode();
                 _isInFullScreenMode = false;
             }
+        }
+
+        private void InteractionSurface_Tapped(object sender, TappedRoutedEventArgs e)
+        {
+            ToggleControlsVisibility();
+        }
+
+        private void InteractionSurface_KeyDown(object sender, KeyRoutedEventArgs e)
+        {
+            HandleKey(e.Key, () => e.Handled = true);
+        }
+
+        private void CoreWindow_KeyDown(CoreWindow sender, KeyEventArgs args)
+        {
+            HandleKey(args.VirtualKey, () => args.Handled = true);
+        }
+
+        private void HandleKey(VirtualKey key, Action markHandled)
+        {
+            if (key == VirtualKey.GamepadA || key == VirtualKey.Enter || key == VirtualKey.Space)
+            {
+                ToggleControlsVisibility();
+                markHandled?.Invoke();
+                return;
+            }
+
+            if (key == VirtualKey.GamepadB || key == VirtualKey.Escape)
+            {
+                CloseButton_Click(this, new RoutedEventArgs());
+                markHandled?.Invoke();
+            }
+        }
+
+        private void ToggleControlsVisibility()
+        {
+            ControlsOverlay.Visibility = ControlsOverlay.Visibility == Visibility.Visible
+                ? Visibility.Collapsed
+                : Visibility.Visible;
+        }
+
+        private void PlayPauseButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_vlcPlayer == null)
+            {
+                return;
+            }
+
+            if (_vlcPlayer.IsPlaying)
+            {
+                _vlcPlayer.Pause();
+                PlayPauseButton.Content = "Play";
+            }
+            else
+            {
+                _vlcPlayer.Play();
+                PlayPauseButton.Content = "Pause";
+            }
+        }
+
+        private void BackThirtyButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_vlcPlayer == null)
+            {
+                return;
+            }
+
+            long target = Math.Max(0, _vlcPlayer.Time - 30000);
+            _vlcPlayer.Time = target;
+        }
+
+        private void ForwardThirtyButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_vlcPlayer == null)
+            {
+                return;
+            }
+
+            long maxTime = _vlcPlayer.Length > 0 ? _vlcPlayer.Length : long.MaxValue;
+            long target = Math.Min(maxTime, _vlcPlayer.Time + 30000);
+            _vlcPlayer.Time = target;
         }
     }
 }
