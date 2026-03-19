@@ -17,6 +17,22 @@
             <Style TargetType="TextBlock">
                 <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
             </Style>
+
+            <DataTemplate x:Key="WhiteHeaderTemplate">
+                <TextBlock Text="{Binding}" Foreground="{StaticResource TextBrush}" Margin="0,0,0,6" />
+            </DataTemplate>
+
+            <Style TargetType="TextBox">
+                <Setter Property="HeaderTemplate" Value="{StaticResource WhiteHeaderTemplate}" />
+            </Style>
+
+            <Style TargetType="PasswordBox">
+                <Setter Property="HeaderTemplate" Value="{StaticResource WhiteHeaderTemplate}" />
+            </Style>
+
+            <Style TargetType="ComboBox">
+                <Setter Property="HeaderTemplate" Value="{StaticResource WhiteHeaderTemplate}" />
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>
