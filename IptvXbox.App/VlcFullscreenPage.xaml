@@ -21,6 +21,10 @@
                 Margin="0,20,20,0"
                 Width="56"
                 Height="56"
+                Background="Transparent"
+                BorderBrush="Transparent"
+                Foreground="White"
+                FontWeight="Bold"
                 Click="CloseButton_Click" />
     </Grid>
 </Page>
