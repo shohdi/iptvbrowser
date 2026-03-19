@@ -245,17 +245,17 @@ namespace IptvXbox.App
 
         private void ShowBuiltinPlayer()
         {
-            PlayerElement.Opacity = 1;
+            PlayerElement.Visibility = Visibility.Visible;
             PlayerElement.IsHitTestVisible = true;
-            VlcPlayerView.Opacity = 0;
+            VlcPlayerView.Visibility = Visibility.Collapsed;
             VlcPlayerView.IsHitTestVisible = false;
         }
 
         private void ShowVlcPlayer()
         {
-            PlayerElement.Opacity = 0;
+            PlayerElement.Visibility = Visibility.Collapsed;
             PlayerElement.IsHitTestVisible = false;
-            VlcPlayerView.Opacity = 1;
+            VlcPlayerView.Visibility = Visibility.Visible;
             VlcPlayerView.IsHitTestVisible = true;
         }
 
