@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Package
   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
   xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest"
@@ -6,15 +6,15 @@
   IgnorableNamespaces="uap mp">
 
   <Identity
-    Name="4c1ad690-73a8-45f0-bcee-5439b79da409"
-    Publisher="CN=Codex"
-    Version="1.0.0.0" />
+    Name="shohdi.Shohdi.Iptv"
+    Publisher="CN=C12B0294-9D73-414B-A03F-EF307E41A073"
+    Version="1.0.1.0" />
 
-  <mp:PhoneIdentity PhoneProductId="f9fb2cba-5f96-419b-b14e-b2a9c9fd8eb1" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
+  <mp:PhoneIdentity PhoneProductId="e36c404e-f4a7-4ce9-85b3-20f24aa91548" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
 
   <Properties>
-    <DisplayName>IPTV Browser</DisplayName>
-    <PublisherDisplayName>Codex</PublisherDisplayName>
+    <DisplayName>Shohdi.Iptv</DisplayName>
+    <PublisherDisplayName>shohdi</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 
@@ -29,7 +29,7 @@
   <Applications>
     <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="IptvXbox.App.App">
       <uap:VisualElements
-        DisplayName="IPTV Browser"
+        DisplayName="Shohdi.Iptv"
         Description="IPTV browser and player"
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
@@ -39,6 +39,8 @@
           Square71x71Logo="Assets\Square71x71Logo.png"
           Square310x310Logo="Assets\LargeTile.png" />
         <uap:SplashScreen Image="Assets\SplashScreen.png" />
+        <uap:InitialRotationPreference>
+          <uap:Rotation Preference="landscape"/></uap:InitialRotationPreference>
       </uap:VisualElements>
     </Application>
   </Applications>
