@@ -1,5 +1,6 @@
 using IptvXbox.App.Models;
 using IptvXbox.App.Services;
+using LibVLCSharp.Platforms.UWP;
 using LibVLCSharp.Shared;
 using System;
 using System.Collections.Generic;
@@ -21,8 +22,8 @@ namespace IptvXbox.App
     {
         private readonly AppSession _session = AppSession.Current;
         private readonly UwpMediaPlayer _player = new UwpMediaPlayer();
-        private readonly LibVLC _libVlc = VlcPlaybackService.SharedLibVlc;
-        private readonly VlcMediaPlayer _vlcPlayer;
+        private LibVLC _libVlc = VlcPlaybackService.SharedLibVlc;
+        private VlcMediaPlayer _vlcPlayer;
         private CancellationTokenSource _searchCts;
         private bool _isViewReady;
         private CatalogItem _selectedItem;
@@ -36,10 +37,15 @@ namespace IptvXbox.App
             InitializeComponent();
             DataContext = this;
             PlayerElement.SetMediaPlayer(_player);
-            _vlcPlayer = new VlcMediaPlayer(_libVlc);
-            VlcPlayerView.MediaPlayer = _vlcPlayer;
             Loaded += SearchPage_Loaded;
             Unloaded += SearchPage_Unloaded;
+        }
+
+        private void VlcPlayerView_Initialized(object sender, InitializedEventArgs e)
+        {
+            _libVlc = new LibVLC(e.SwapChainOptions);
+            _vlcPlayer = new VlcMediaPlayer(_libVlc);
+            VlcPlayerView.MediaPlayer = _vlcPlayer;
         }
 
         private async void SearchPage_Loaded(object sender, RoutedEventArgs e)
@@ -57,7 +63,7 @@ namespace IptvXbox.App
             _searchCts?.Cancel();
             StopBuiltinPlayer();
             StopVlcPlayer();
-            _vlcPlayer.Dispose();
+            _vlcPlayer?.Dispose();
         }
 
         private void Session_PropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -247,6 +253,7 @@ namespace IptvXbox.App
                 _currentVlcMedia?.Dispose();
                 _currentVlcMedia = new Media(_libVlc, new Uri(url));
                 _vlcPlayer.Play(_currentVlcMedia);
+                _vlcPlayer.Fullscreen = true;
                 StatusTextBlock.Text = "VLC playback started.";
                 return;
             }
@@ -272,6 +279,7 @@ namespace IptvXbox.App
             PlayerElement.IsHitTestVisible = false;
             VlcPlayerView.Visibility = Visibility.Visible;
             VlcPlayerView.IsHitTestVisible = true;
+            VlcPlayerView.MediaPlayer.Fullscreen = true;
         }
 
         private void StopBuiltinPlayer()
@@ -282,7 +290,7 @@ namespace IptvXbox.App
 
         private void StopVlcPlayer()
         {
-            _vlcPlayer.Stop();
+            _vlcPlayer?.Stop();
             _currentVlcMedia?.Dispose();
             _currentVlcMedia = null;
         }

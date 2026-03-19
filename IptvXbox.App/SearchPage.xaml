@@ -181,9 +181,9 @@
                                Grid.Row="4"
                                Margin="0,14,0,0"
                                MinHeight="320"
-                               Visibility="Collapsed"
                                HorizontalAlignment="Stretch"
-                               VerticalAlignment="Stretch" />
+                               VerticalAlignment="Stretch"
+                               Initialized="VlcPlayerView_Initialized" />
             </Grid>
         </Border>
     </Grid>
