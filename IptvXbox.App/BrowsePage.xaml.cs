@@ -1,5 +1,6 @@
 using IptvXbox.App.Models;
 using IptvXbox.App.Services;
+using LibVLCSharp.Platforms.UWP;
 using LibVLCSharp.Shared;
 using System;
 using System.Collections.Generic;
@@ -7,6 +8,7 @@ using System.ComponentModel;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.Media.Core;
+using Windows.Media.Playback;
 using Windows.UI.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
@@ -19,8 +21,8 @@ namespace IptvXbox.App
     {
         private readonly AppSession _session = AppSession.Current;
         private readonly UwpMediaPlayer _player = new UwpMediaPlayer();
-        private readonly LibVLC _libVlc = VlcPlaybackService.SharedLibVlc;
-        private readonly VlcMediaPlayer _vlcPlayer;
+        private  LibVLC _libVlc = VlcPlaybackService.SharedLibVlc;
+        private  VlcMediaPlayer _vlcPlayer;
         private readonly Stack<BrowseNode> _history = new Stack<BrowseNode>();
         private BrowseNode _currentNode;
         private CatalogItem _selectedItem;
@@ -31,13 +33,24 @@ namespace IptvXbox.App
         {
             InitializeComponent();
             PlayerElement.SetMediaPlayer(_player);
-            _vlcPlayer = new VlcMediaPlayer(_libVlc);
-            VlcPlayerView.MediaPlayer = _vlcPlayer;
+            
             Loaded += BrowsePage_Loaded;
             Unloaded += BrowsePage_Unloaded;
         }
 
-        private async void BrowsePage_Loaded(object sender, RoutedEventArgs e)
+		// STEP 1: Setup the "Video Pipe" (Only happens once)
+		private void VlcPlayerView_Initialized(object sender, InitializedEventArgs e)
+		{
+			// This line FIXES the "Sound only" issue by passing SwapChainOptions
+			_libVlc = new LibVLC(e.SwapChainOptions);
+
+			_vlcPlayer = new VlcMediaPlayer(_libVlc);
+
+			// Connect the player to the UI
+			VlcPlayerView.MediaPlayer = _vlcPlayer;
+		}
+
+		private async void BrowsePage_Loaded(object sender, RoutedEventArgs e)
         {
             _session.PropertyChanged += Session_PropertyChanged;
             await _session.LoadInitialLocalDataAsync();
@@ -232,7 +245,9 @@ namespace IptvXbox.App
                 _currentVlcMedia?.Dispose();
                 _currentVlcMedia = new Media(_libVlc, new Uri(url));
                 _vlcPlayer.Play(_currentVlcMedia);
-                StatusTextBlock.Text = "VLC playback started.";
+				_vlcPlayer.Fullscreen = true;
+                
+				StatusTextBlock.Text = "VLC playback started.";
                 return;
             }
 
@@ -257,6 +272,7 @@ namespace IptvXbox.App
             PlayerElement.IsHitTestVisible = false;
             VlcPlayerView.Visibility = Visibility.Visible;
             VlcPlayerView.IsHitTestVisible = true;
+            VlcPlayerView.MediaPlayer.Fullscreen = true;
         }
 
         private void StopBuiltinPlayer()

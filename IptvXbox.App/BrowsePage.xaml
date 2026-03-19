@@ -166,12 +166,12 @@
                                     AreTransportControlsEnabled="True"
                                     AutoPlay="False" />
                 <vlc:VideoView x:Name="VlcPlayerView"
-                               Grid.Row="4"
-                               Margin="0,14,0,0"
-                               MinHeight="320"
-                               Visibility="Collapsed"
-                               HorizontalAlignment="Stretch"
-                               VerticalAlignment="Stretch" />
+               Grid.Row="4"
+               Margin="0,14,0,0"
+               MinHeight="320"
+               HorizontalAlignment="Stretch" 
+               VerticalAlignment="Stretch"
+               Initialized="VlcPlayerView_Initialized" />
             </Grid>
         </Border>
     </Grid>
