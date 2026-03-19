@@ -14,17 +14,68 @@
                        VerticalAlignment="Stretch"
                        Initialized="VlcPlayerView_Initialized" />
 
-        <Button x:Name="CloseButton"
-                Content="X"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Top"
-                Margin="0,20,20,0"
-                Width="56"
-                Height="56"
-                Background="Transparent"
-                BorderBrush="Transparent"
-                Foreground="White"
-                FontWeight="Bold"
-                Click="CloseButton_Click" />
+        <Grid x:Name="InteractionSurface"
+              Background="Transparent"
+              Tapped="InteractionSurface_Tapped"
+              KeyDown="InteractionSurface_KeyDown">
+            <Grid x:Name="ControlsOverlay">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Grid Grid.Row="0" Margin="20,20,20,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock x:Name="TitleTextBlock"
+                               VerticalAlignment="Center"
+                               Foreground="White"
+                               FontSize="26"
+                               FontWeight="SemiBold"
+                               TextWrapping="WrapWholeWords" />
+
+                    <Button x:Name="CloseButton"
+                            Grid.Column="1"
+                            Content="X"
+                            Width="56"
+                            Height="56"
+                            Background="Transparent"
+                            BorderBrush="Transparent"
+                            Foreground="White"
+                            FontWeight="Bold"
+                            Click="CloseButton_Click" />
+                </Grid>
+
+                <Border Grid.Row="2"
+                        Margin="20,0,20,20"
+                        Padding="20,14"
+                        Background="#AA000000"
+                        CornerRadius="14">
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Center"
+                                Spacing="16">
+                        <Button x:Name="BackThirtyButton"
+                                Content="-30s"
+                                Click="BackThirtyButton_Click" />
+                        <Button x:Name="BackTwoMinutesButton"
+                                Content="-2m"
+                                Click="BackTwoMinutesButton_Click" />
+                        <Button x:Name="PlayPauseButton"
+                                Content="Pause"
+                                Click="PlayPauseButton_Click" />
+                        <Button x:Name="ForwardTwoMinutesButton"
+                                Content="+2m"
+                                Click="ForwardTwoMinutesButton_Click" />
+                        <Button x:Name="ForwardThirtyButton"
+                                Content="+30s"
+                                Click="ForwardThirtyButton_Click" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
     </Grid>
 </Page>
