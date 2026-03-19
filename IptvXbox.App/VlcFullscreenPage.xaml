@@ -15,7 +15,7 @@
                        Initialized="VlcPlayerView_Initialized" />
 
         <Grid x:Name="InteractionSurface"
-              Background="#01000000"
+              Background="Transparent"
               Tapped="InteractionSurface_Tapped"
               KeyDown="InteractionSurface_KeyDown">
             <Grid x:Name="ControlsOverlay">
@@ -61,9 +61,15 @@
                         <Button x:Name="BackThirtyButton"
                                 Content="-30s"
                                 Click="BackThirtyButton_Click" />
+                        <Button x:Name="BackTwoMinutesButton"
+                                Content="-2m"
+                                Click="BackTwoMinutesButton_Click" />
                         <Button x:Name="PlayPauseButton"
                                 Content="Pause"
                                 Click="PlayPauseButton_Click" />
+                        <Button x:Name="ForwardTwoMinutesButton"
+                                Content="+2m"
+                                Click="ForwardTwoMinutesButton_Click" />
                         <Button x:Name="ForwardThirtyButton"
                                 Content="+30s"
                                 Click="ForwardThirtyButton_Click" />

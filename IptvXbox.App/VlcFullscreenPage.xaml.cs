@@ -97,6 +97,11 @@ namespace IptvXbox.App
 
         private void InteractionSurface_Tapped(object sender, TappedRoutedEventArgs e)
         {
+            if (e.OriginalSource is DependencyObject source && IsInsideControlsOverlay(source))
+            {
+                return;
+            }
+
             ToggleControlsVisibility();
         }
 
@@ -173,6 +178,45 @@ namespace IptvXbox.App
             long maxTime = _vlcPlayer.Length > 0 ? _vlcPlayer.Length : long.MaxValue;
             long target = Math.Min(maxTime, _vlcPlayer.Time + 30000);
             _vlcPlayer.Time = target;
+        }
+
+        private void BackTwoMinutesButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_vlcPlayer == null)
+            {
+                return;
+            }
+
+            long target = Math.Max(0, _vlcPlayer.Time - 120000);
+            _vlcPlayer.Time = target;
+        }
+
+        private void ForwardTwoMinutesButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_vlcPlayer == null)
+            {
+                return;
+            }
+
+            long maxTime = _vlcPlayer.Length > 0 ? _vlcPlayer.Length : long.MaxValue;
+            long target = Math.Min(maxTime, _vlcPlayer.Time + 120000);
+            _vlcPlayer.Time = target;
+        }
+
+        private bool IsInsideControlsOverlay(DependencyObject source)
+        {
+            DependencyObject current = source;
+            while (current != null)
+            {
+                if (ReferenceEquals(current, ControlsOverlay))
+                {
+                    return true;
+                }
+
+                current = Windows.UI.Xaml.Media.VisualTreeHelper.GetParent(current);
+            }
+
+            return false;
         }
     }
 }
