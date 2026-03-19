@@ -2,6 +2,7 @@ using IptvXbox.App.Models;
 using LibVLCSharp.Platforms.UWP;
 using LibVLCSharp.Shared;
 using System;
+using Windows.UI.ViewManagement;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Navigation;
@@ -15,10 +16,12 @@ namespace IptvXbox.App
         private VlcMediaPlayer _vlcPlayer;
         private Media _currentMedia;
         private VlcPlaybackRequest _pendingRequest;
+        private bool _isInFullScreenMode;
 
         public VlcFullscreenPage()
         {
             InitializeComponent();
+            Loaded += VlcFullscreenPage_Loaded;
             Unloaded += VlcFullscreenPage_Unloaded;
         }
 
@@ -51,13 +54,23 @@ namespace IptvXbox.App
             _pendingRequest = null;
         }
 
+        private void VlcFullscreenPage_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (!_isInFullScreenMode)
+            {
+                _isInFullScreenMode = ApplicationView.GetForCurrentView().TryEnterFullScreenMode();
+            }
+        }
+
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
+            ExitFullScreenMode();
             MainPage.Current?.CloseOverlay();
         }
 
         private void VlcFullscreenPage_Unloaded(object sender, RoutedEventArgs e)
         {
+            ExitFullScreenMode();
             _vlcPlayer?.Stop();
             _currentMedia?.Dispose();
             _currentMedia = null;
@@ -65,6 +78,15 @@ namespace IptvXbox.App
             _libVlc?.Dispose();
             _vlcPlayer = null;
             _libVlc = null;
+        }
+
+        private void ExitFullScreenMode()
+        {
+            if (_isInFullScreenMode)
+            {
+                ApplicationView.GetForCurrentView().ExitFullScreenMode();
+                _isInFullScreenMode = false;
+            }
         }
     }
 }
