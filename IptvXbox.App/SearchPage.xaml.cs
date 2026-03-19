@@ -1,5 +1,6 @@
 using IptvXbox.App.Models;
 using IptvXbox.App.Services;
+using LibVLCSharp.Shared;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -8,21 +9,25 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.Media.Core;
-using Windows.Media.Playback;
 using Windows.UI.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
+using UwpMediaPlayer = Windows.Media.Playback.MediaPlayer;
+using VlcMediaPlayer = LibVLCSharp.Shared.MediaPlayer;
 
 namespace IptvXbox.App
 {
     public sealed partial class SearchPage : Page
     {
         private readonly AppSession _session = AppSession.Current;
-        private readonly MediaPlayer _player = new MediaPlayer();
+        private readonly UwpMediaPlayer _player = new UwpMediaPlayer();
+        private readonly LibVLC _libVlc = VlcPlaybackService.SharedLibVlc;
+        private readonly VlcMediaPlayer _vlcPlayer;
         private CancellationTokenSource _searchCts;
         private bool _isViewReady;
         private CatalogItem _selectedItem;
         private SeriesEpisode _selectedEpisode;
+        private Media _currentVlcMedia;
 
         public ObservableCollection<AlphaGroup> GroupedItems { get; } = new ObservableCollection<AlphaGroup>();
 
@@ -31,6 +36,8 @@ namespace IptvXbox.App
             InitializeComponent();
             DataContext = this;
             PlayerElement.SetMediaPlayer(_player);
+            _vlcPlayer = new VlcMediaPlayer(_libVlc);
+            VlcPlayerView.MediaPlayer = _vlcPlayer;
             Loaded += SearchPage_Loaded;
             Unloaded += SearchPage_Unloaded;
         }
@@ -48,6 +55,9 @@ namespace IptvXbox.App
             _isViewReady = false;
             _session.PropertyChanged -= Session_PropertyChanged;
             _searchCts?.Cancel();
+            StopBuiltinPlayer();
+            StopVlcPlayer();
+            _vlcPlayer.Dispose();
         }
 
         private void Session_PropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -132,15 +142,19 @@ namespace IptvXbox.App
             _selectedItem = item;
             _selectedEpisode = null;
             SelectionTextBlock.Text = $"{item.Name}\n{item.Subtitle}";
+            StopBuiltinPlayer();
+            StopVlcPlayer();
 
             if (item.IsSeries)
             {
+                PlaybackButtonsPanel.Visibility = Visibility.Collapsed;
                 await LoadSeriesAsync(item);
                 return;
             }
 
             SeriesSelectorsPanel.Visibility = Visibility.Collapsed;
-            PlayUrl(_session.BuildStreamUrl(item));
+            PlaybackButtonsPanel.Visibility = Visibility.Visible;
+            StatusTextBlock.Text = "Choose Play or Play on VLC.";
         }
 
         private async Task LoadSeriesAsync(CatalogItem item)
@@ -154,13 +168,35 @@ namespace IptvXbox.App
                 List<SeasonOption> seasons = response.GetSeasonOptions();
                 SeasonComboBox.ItemsSource = seasons;
                 SeasonComboBox.SelectedIndex = seasons.Count > 0 ? 0 : -1;
-                StatusTextBlock.Text = seasons.Count > 0 ? "Choose a season and episode." : "No episodes found.";
+                StatusTextBlock.Text = seasons.Count > 0 ? "Choose a season and episode, then Play or Play on VLC." : "No episodes found.";
             }
             catch (Exception ex)
             {
                 StatusTextBlock.Text = $"Series load failed: {ex.Message}";
                 SeriesSelectorsPanel.Visibility = Visibility.Collapsed;
             }
+        }
+
+        private void PlayButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedItem == null || _selectedItem.IsSeries)
+            {
+                StatusTextBlock.Text = "Select a live channel or movie first.";
+                return;
+            }
+
+            PlayUrl(_session.BuildStreamUrl(_selectedItem), useVlc: false);
+        }
+
+        private void PlayWithVlcButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedItem == null || _selectedItem.IsSeries)
+            {
+                StatusTextBlock.Text = "Select a live channel or movie first.";
+                return;
+            }
+
+            PlayUrl(_session.BuildStreamUrl(_selectedItem), useVlc: true);
         }
 
         private void SeasonComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -185,15 +221,70 @@ namespace IptvXbox.App
                 return;
             }
 
-            PlayUrl(_session.BuildSeriesEpisodeUrl(_selectedEpisode));
+            PlayUrl(_session.BuildSeriesEpisodeUrl(_selectedEpisode), useVlc: false);
         }
 
-        private void PlayUrl(string url)
+        private void PlayEpisodeWithVlcButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedItem == null || _selectedEpisode == null)
+            {
+                StatusTextBlock.Text = "Select an episode first.";
+                return;
+            }
+
+            PlayUrl(_session.BuildSeriesEpisodeUrl(_selectedEpisode), useVlc: true);
+        }
+
+        private void PlayUrl(string url, bool useVlc)
         {
             SelectionTextBlock.Text = $"{SelectionTextBlock.Text}\n{url}";
+
+            if (useVlc)
+            {
+                StopBuiltinPlayer();
+                ShowVlcPlayer();
+
+                _currentVlcMedia?.Dispose();
+                _currentVlcMedia = new Media(_libVlc, new Uri(url));
+                _vlcPlayer.Play(_currentVlcMedia);
+                StatusTextBlock.Text = "VLC playback started.";
+                return;
+            }
+
+            StopVlcPlayer();
+            ShowBuiltinPlayer();
             _player.Source = MediaSource.CreateFromUri(new Uri(url));
             _player.Play();
             StatusTextBlock.Text = "Playback started.";
+        }
+
+        private void ShowBuiltinPlayer()
+        {
+            PlayerElement.Opacity = 1;
+            PlayerElement.IsHitTestVisible = true;
+            VlcPlayerView.Opacity = 0;
+            VlcPlayerView.IsHitTestVisible = false;
+        }
+
+        private void ShowVlcPlayer()
+        {
+            PlayerElement.Opacity = 0;
+            PlayerElement.IsHitTestVisible = false;
+            VlcPlayerView.Opacity = 1;
+            VlcPlayerView.IsHitTestVisible = true;
+        }
+
+        private void StopBuiltinPlayer()
+        {
+            _player.Pause();
+            _player.Source = null;
+        }
+
+        private void StopVlcPlayer()
+        {
+            _vlcPlayer.Stop();
+            _currentVlcMedia?.Dispose();
+            _currentVlcMedia = null;
         }
     }
 }

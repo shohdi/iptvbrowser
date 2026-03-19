@@ -5,6 +5,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="using:IptvXbox.App.Models"
+    xmlns:vlc="using:LibVLCSharp.Platforms.UWP"
     mc:Ignorable="d"
     Background="{StaticResource ShellBackgroundBrush}">
 
@@ -121,6 +122,7 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
@@ -132,6 +134,19 @@
                            TextWrapping="WrapWholeWords" />
 
                 <StackPanel Grid.Row="2"
+                            x:Name="PlaybackButtonsPanel"
+                            Orientation="Horizontal"
+                            Spacing="12"
+                            Visibility="Collapsed">
+                    <Button x:Name="PlayButton"
+                            Content="Play"
+                            Click="PlayButton_Click" />
+                    <Button x:Name="PlayWithVlcButton"
+                            Content="Play on VLC"
+                            Click="PlayWithVlcButton_Click" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="3"
                             x:Name="SeriesSelectorsPanel"
                             Orientation="Horizontal"
                             Spacing="12"
@@ -145,13 +160,19 @@
                               Header="Episode"
                               SelectionChanged="EpisodeComboBox_SelectionChanged" />
                     <Button Content="Play Episode" Click="PlayEpisodeButton_Click" />
+                    <Button Content="Play Episode on VLC" Click="PlayEpisodeWithVlcButton_Click" />
                 </StackPanel>
 
                 <MediaPlayerElement x:Name="PlayerElement"
-                                    Grid.Row="3"
+                                    Grid.Row="4"
                                     Margin="0,14,0,0"
                                     AreTransportControlsEnabled="True"
                                     AutoPlay="False" />
+                <vlc:VideoView x:Name="VlcPlayerView"
+                               Grid.Row="4"
+                               Margin="0,14,0,0"
+                               Opacity="0"
+                               IsHitTestVisible="False" />
             </Grid>
         </Border>
     </Grid>

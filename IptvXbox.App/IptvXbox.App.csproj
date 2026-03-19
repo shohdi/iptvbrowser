@@ -114,8 +114,10 @@
     <UseDotNetNativeToolchain>true</UseDotNetNativeToolchain>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="LibVLCSharp" Version="3.6.1" />
     <PackageReference Include="Microsoft.NETCore.UniversalWindowsPlatform" Version="6.2.14" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="VideoLAN.LibVLC.UWP" Version="3.3.2" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="App.xaml.cs">
@@ -143,6 +145,7 @@
     <Compile Include="Services\AppSession.cs" />
     <Compile Include="Services\CatalogBuilder.cs" />
     <Compile Include="Services\IptvProviderClient.cs" />
+    <Compile Include="Services\VlcPlaybackService.cs" />
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest">
