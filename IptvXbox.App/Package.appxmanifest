@@ -8,7 +8,7 @@
   <Identity
     Name="shohdi.Shohdi.Iptv"
     Publisher="CN=C12B0294-9D73-414B-A03F-EF307E41A073"
-    Version="1.0.1.0" />
+    Version="1.0.2.0" />
 
   <mp:PhoneIdentity PhoneProductId="e36c404e-f4a7-4ce9-85b3-20f24aa91548" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
 
