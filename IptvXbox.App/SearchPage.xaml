@@ -125,66 +125,71 @@
                 Padding="18"
                 Background="{StaticResource SurfaceBrush}"
                 CornerRadius="18">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
+            <ScrollViewer VerticalScrollMode="Enabled"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollMode="Disabled"
+                          HorizontalScrollBarVisibility="Disabled">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
 
-                <TextBlock Text="Player" FontSize="22" FontWeight="SemiBold" />
-                <TextBlock x:Name="SelectionTextBlock"
-                           Grid.Row="1"
-                           Margin="0,10,0,10"
-                           Text="Select an item to start playback."
-                           TextWrapping="WrapWholeWords" />
+                    <TextBlock Text="Player" FontSize="22" FontWeight="SemiBold" />
+                    <TextBlock x:Name="SelectionTextBlock"
+                               Grid.Row="1"
+                               Margin="0,10,0,10"
+                               Text="Select an item to start playback."
+                               TextWrapping="WrapWholeWords" />
 
-                <StackPanel Grid.Row="2"
-                            x:Name="PlaybackButtonsPanel"
-                            Spacing="10"
-                            Visibility="Collapsed">
-                    <Button x:Name="PlayButton"
-                            Content="Play"
-                            Click="PlayButton_Click" />
-                    <Button x:Name="PlayWithVlcButton"
-                            Content="Play on VLC"
-                            Click="PlayWithVlcButton_Click" />
-                </StackPanel>
+                    <StackPanel Grid.Row="2"
+                                x:Name="PlaybackButtonsPanel"
+                                Spacing="10"
+                                Visibility="Collapsed">
+                        <Button x:Name="PlayButton"
+                                Content="Play"
+                                Click="PlayButton_Click" />
+                        <Button x:Name="PlayWithVlcButton"
+                                Content="Play on VLC"
+                                Click="PlayWithVlcButton_Click" />
+                    </StackPanel>
 
-                <StackPanel Grid.Row="3"
-                            x:Name="SeriesSelectorsPanel"
-                            Spacing="10"
-                            Visibility="Collapsed">
-                    <ComboBox x:Name="SeasonComboBox"
-                              Header="Season"
-                              SelectionChanged="SeasonComboBox_SelectionChanged" />
-                    <ComboBox x:Name="EpisodeComboBox"
-                              Header="Episode"
-                              SelectionChanged="EpisodeComboBox_SelectionChanged" />
-                    <Button x:Name="PlayEpisodeButton"
-                            Content="Play Episode"
-                            Click="PlayEpisodeButton_Click" />
-                    <Button x:Name="PlayEpisodeWithVlcButton"
-                            Content="Play Episode on VLC"
-                            Click="PlayEpisodeWithVlcButton_Click" />
-                </StackPanel>
+                    <StackPanel Grid.Row="3"
+                                x:Name="SeriesSelectorsPanel"
+                                Spacing="10"
+                                Visibility="Collapsed">
+                        <ComboBox x:Name="SeasonComboBox"
+                                  Header="Season"
+                                  SelectionChanged="SeasonComboBox_SelectionChanged" />
+                        <ComboBox x:Name="EpisodeComboBox"
+                                  Header="Episode"
+                                  SelectionChanged="EpisodeComboBox_SelectionChanged" />
+                        <Button x:Name="PlayEpisodeButton"
+                                Content="Play Episode"
+                                Click="PlayEpisodeButton_Click" />
+                        <Button x:Name="PlayEpisodeWithVlcButton"
+                                Content="Play Episode on VLC"
+                                Click="PlayEpisodeWithVlcButton_Click" />
+                    </StackPanel>
 
-                <MediaPlayerElement x:Name="PlayerElement"
-                                    Grid.Row="4"
-                                    Margin="0,14,0,0"
-                                    MinHeight="320"
-                                    AreTransportControlsEnabled="True"
-                                    AutoPlay="False" />
-                <vlc:VideoView x:Name="VlcPlayerView"
-                               Grid.Row="4"
-                               Margin="0,14,0,0"
-                               MinHeight="320"
-                               HorizontalAlignment="Stretch"
-                               VerticalAlignment="Stretch"
-                               Initialized="VlcPlayerView_Initialized" />
-            </Grid>
+                    <MediaPlayerElement x:Name="PlayerElement"
+                                        Grid.Row="4"
+                                        Margin="0,14,0,0"
+                                        MinHeight="320"
+                                        AreTransportControlsEnabled="True"
+                                        AutoPlay="False" />
+                    <vlc:VideoView x:Name="VlcPlayerView"
+                                   Grid.Row="4"
+                                   Margin="0,14,0,0"
+                                   MinHeight="320"
+                                   HorizontalAlignment="Stretch"
+                                   VerticalAlignment="Stretch"
+                                   Initialized="VlcPlayerView_Initialized" />
+                </Grid>
+            </ScrollViewer>
         </Border>
     </Grid>
 </Page>
