@@ -9,6 +9,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Windows.ApplicationModel.DataTransfer;
 using Windows.Media.Core;
 using Windows.UI.Core;
 using Windows.UI.Xaml;
@@ -205,6 +206,17 @@ namespace IptvXbox.App
             OpenVlcOverlay(_session.BuildStreamUrl(_selectedItem));
         }
 
+        private void CopyUrlButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedItem == null || _selectedItem.IsSeries)
+            {
+                StatusTextBlock.Text = "Select a live channel or movie first.";
+                return;
+            }
+
+            CopyUrlToClipboard(_session.BuildStreamUrl(_selectedItem), "URL copied.");
+        }
+
         private void SeasonComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (SeasonComboBox.SelectedItem is SeasonOption season)
@@ -241,6 +253,17 @@ namespace IptvXbox.App
             OpenVlcOverlay(_session.BuildSeriesEpisodeUrl(_selectedEpisode));
         }
 
+        private void CopyEpisodeUrlButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedItem == null || _selectedEpisode == null)
+            {
+                StatusTextBlock.Text = "Select an episode first.";
+                return;
+            }
+
+            CopyUrlToClipboard(_session.BuildSeriesEpisodeUrl(_selectedEpisode), "Episode URL copied.");
+        }
+
         private void PlayUrl(string url, bool useVlc)
         {
             SelectionTextBlock.Text = $"{SelectionTextBlock.Text}\n{url}";
@@ -273,6 +296,22 @@ namespace IptvXbox.App
                 Subtitle = _selectedItem?.Subtitle ?? url,
                 Url = url
             });
+        }
+
+        private void CopyUrlToClipboard(string url, string statusMessage)
+        {
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                StatusTextBlock.Text = "No URL available to copy.";
+                return;
+            }
+
+            var dataPackage = new DataPackage();
+            dataPackage.SetText(url);
+            Clipboard.SetContent(dataPackage);
+            Clipboard.Flush();
+            StatusTextBlock.Text = statusMessage;
+            SelectionTextBlock.Text = $"{SelectionTextBlock.Text}\n{url}";
         }
 
         private void ShowBuiltinPlayer()

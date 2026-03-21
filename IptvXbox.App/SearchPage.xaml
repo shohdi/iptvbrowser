@@ -155,6 +155,9 @@
                         <Button x:Name="PlayWithVlcButton"
                                 Content="Play on VLC"
                                 Click="PlayWithVlcButton_Click" />
+                        <Button x:Name="CopyUrlButton"
+                                Content="Copy URL"
+                                Click="CopyUrlButton_Click" />
                     </StackPanel>
 
                     <StackPanel Grid.Row="3"
@@ -173,6 +176,9 @@
                         <Button x:Name="PlayEpisodeWithVlcButton"
                                 Content="Play Episode on VLC"
                                 Click="PlayEpisodeWithVlcButton_Click" />
+                        <Button x:Name="CopyEpisodeUrlButton"
+                                Content="Copy Episode URL"
+                                Click="CopyEpisodeUrlButton_Click" />
                     </StackPanel>
 
                     <MediaPlayerElement x:Name="PlayerElement"
