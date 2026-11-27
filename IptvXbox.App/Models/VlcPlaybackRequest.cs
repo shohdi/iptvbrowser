@@ -7,5 +7,7 @@ namespace IptvXbox.App.Models
         public string Subtitle { get; set; }
 
         public string Url { get; set; }
+
+        public WatchHistoryEntry WatchEntry { get; set; }
     }
 }

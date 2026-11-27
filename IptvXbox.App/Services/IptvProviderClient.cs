@@ -92,7 +92,7 @@ namespace IptvXbox.App.Services
             }
         }
 
-        private static string NormalizeServer(string server)
+        internal static string NormalizeServer(string server)
         {
             string normalized = (server ?? string.Empty).Trim();
             normalized = normalized.Replace("https://", "http://");

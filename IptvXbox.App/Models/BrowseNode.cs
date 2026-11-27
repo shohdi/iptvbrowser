@@ -16,6 +16,8 @@ namespace IptvXbox.App.Models
 
         public CatalogItem Item { get; set; }
 
+        public WatchHistoryEntry WatchEntry { get; set; }
+
         public BrowseNode TargetNode { get; set; }
     }
 

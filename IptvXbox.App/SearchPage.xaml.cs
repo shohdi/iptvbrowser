@@ -1,7 +1,5 @@
 using IptvXbox.App.Models;
 using IptvXbox.App.Services;
-using LibVLCSharp.Platforms.UWP;
-using LibVLCSharp.Shared;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -9,26 +7,21 @@ using System.ComponentModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Windows.Media.Core;
+using Windows.ApplicationModel.DataTransfer;
 using Windows.UI.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
-using UwpMediaPlayer = Windows.Media.Playback.MediaPlayer;
-using VlcMediaPlayer = LibVLCSharp.Shared.MediaPlayer;
 
 namespace IptvXbox.App
 {
     public sealed partial class SearchPage : Page
     {
         private readonly AppSession _session = AppSession.Current;
-        private readonly UwpMediaPlayer _player = new UwpMediaPlayer();
-        private LibVLC _libVlc = VlcPlaybackService.SharedLibVlc;
-        private VlcMediaPlayer _vlcPlayer;
+        private BuiltinPlayback _playback;
         private CancellationTokenSource _searchCts;
         private bool _isViewReady;
         private CatalogItem _selectedItem;
         private SeriesEpisode _selectedEpisode;
-        private Media _currentVlcMedia;
 
         public ObservableCollection<AlphaGroup> GroupedItems { get; } = new ObservableCollection<AlphaGroup>();
 
@@ -36,20 +29,14 @@ namespace IptvXbox.App
         {
             InitializeComponent();
             DataContext = this;
-            PlayerElement.SetMediaPlayer(_player);
             Loaded += SearchPage_Loaded;
             Unloaded += SearchPage_Unloaded;
         }
 
-        private void VlcPlayerView_Initialized(object sender, InitializedEventArgs e)
-        {
-            _libVlc = new LibVLC(e.SwapChainOptions);
-            _vlcPlayer = new VlcMediaPlayer(_libVlc);
-            VlcPlayerView.MediaPlayer = _vlcPlayer;
-        }
-
         private async void SearchPage_Loaded(object sender, RoutedEventArgs e)
         {
+            _playback = new BuiltinPlayback();
+            PlayerElement.SetMediaPlayer(_playback.Player);
             _isViewReady = true;
             _session.PropertyChanged += Session_PropertyChanged;
             await _session.LoadInitialLocalDataAsync();
@@ -61,9 +48,10 @@ namespace IptvXbox.App
             _isViewReady = false;
             _session.PropertyChanged -= Session_PropertyChanged;
             _searchCts?.Cancel();
-            StopBuiltinPlayer();
-            StopVlcPlayer();
-            _vlcPlayer?.Dispose();
+            _playback?.Stop();
+            PlayerElement.SetMediaPlayer(null);
+            _playback?.Dispose();
+            _playback = null;
         }
 
         private void Session_PropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -148,8 +136,7 @@ namespace IptvXbox.App
             _selectedItem = item;
             _selectedEpisode = null;
             SelectionTextBlock.Text = $"{item.Name}\n{item.Subtitle}";
-            StopBuiltinPlayer();
-            StopVlcPlayer();
+            _playback.Stop();
 
             if (item.IsSeries)
             {
@@ -165,21 +152,29 @@ namespace IptvXbox.App
 
         private async Task LoadSeriesAsync(CatalogItem item)
         {
-            SeriesSelectorsPanel.Visibility = Visibility.Visible;
+            SeriesSelectorsPanel.Visibility = Visibility.Collapsed;
             StatusTextBlock.Text = "Loading series episodes...";
 
             try
             {
                 SeriesInfoResponse response = await _session.GetSeriesInfoAsync(item, CancellationToken.None);
+                if (!_isViewReady || !ReferenceEquals(item, _selectedItem))
+                {
+                    return;
+                }
+
                 List<SeasonOption> seasons = response.GetSeasonOptions();
                 SeasonComboBox.ItemsSource = seasons;
                 SeasonComboBox.SelectedIndex = seasons.Count > 0 ? 0 : -1;
+                SeriesSelectorsPanel.Visibility = seasons.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
                 StatusTextBlock.Text = seasons.Count > 0 ? "Choose a season and episode, then Play or Play on VLC." : "No episodes found.";
             }
             catch (Exception ex)
             {
-                StatusTextBlock.Text = $"Series load failed: {ex.Message}";
-                SeriesSelectorsPanel.Visibility = Visibility.Collapsed;
+                if (_isViewReady && ReferenceEquals(item, _selectedItem))
+                {
+                    StatusTextBlock.Text = $"Series load failed: {ex.Message}";
+                }
             }
         }
 
@@ -191,7 +186,7 @@ namespace IptvXbox.App
                 return;
             }
 
-            PlayUrl(_session.BuildStreamUrl(_selectedItem), useVlc: false);
+            Play(_session.CreateWatchEntry(_selectedItem));
         }
 
         private void PlayWithVlcButton_Click(object sender, RoutedEventArgs e)
@@ -202,7 +197,18 @@ namespace IptvXbox.App
                 return;
             }
 
-            OpenVlcOverlay(_session.BuildStreamUrl(_selectedItem));
+            OpenVlcOverlay(_session.CreateWatchEntry(_selectedItem));
+        }
+
+        private void CopyUrlButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedItem == null || _selectedItem.IsSeries)
+            {
+                StatusTextBlock.Text = "Select a live channel or movie first.";
+                return;
+            }
+
+            CopyUrlToClipboard(_session.BuildStreamUrl(_selectedItem), "URL copied.");
         }
 
         private void SeasonComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -227,7 +233,7 @@ namespace IptvXbox.App
                 return;
             }
 
-            PlayUrl(_session.BuildSeriesEpisodeUrl(_selectedEpisode), useVlc: false);
+            Play(CreateEpisodeWatchEntry());
         }
 
         private void PlayEpisodeWithVlcButton_Click(object sender, RoutedEventArgs e)
@@ -238,71 +244,59 @@ namespace IptvXbox.App
                 return;
             }
 
-            OpenVlcOverlay(_session.BuildSeriesEpisodeUrl(_selectedEpisode));
+            OpenVlcOverlay(CreateEpisodeWatchEntry());
         }
 
-        private void PlayUrl(string url, bool useVlc)
+        private void CopyEpisodeUrlButton_Click(object sender, RoutedEventArgs e)
         {
-            SelectionTextBlock.Text = $"{SelectionTextBlock.Text}\n{url}";
-
-            if (useVlc)
+            if (_selectedItem == null || _selectedEpisode == null)
             {
-                StopBuiltinPlayer();
-                ShowVlcPlayer();
-
-                _currentVlcMedia?.Dispose();
-                _currentVlcMedia = new Media(_libVlc, new Uri(url));
-                _vlcPlayer.Play(_currentVlcMedia);
-                _vlcPlayer.Fullscreen = true;
-                StatusTextBlock.Text = "VLC playback started.";
+                StatusTextBlock.Text = "Select an episode first.";
                 return;
             }
 
-            StopVlcPlayer();
-            ShowBuiltinPlayer();
-            _player.Source = MediaSource.CreateFromUri(new Uri(url));
-            _player.Play();
+            CopyUrlToClipboard(_session.BuildSeriesEpisodeUrl(_selectedEpisode), "Episode URL copied.");
+        }
+
+        private WatchHistoryEntry CreateEpisodeWatchEntry()
+        {
+            return _session.CreateWatchEntry(_selectedItem, _selectedEpisode,
+                (SeasonComboBox.SelectedItem as SeasonOption)?.SeasonNumber);
+        }
+
+        private void Play(WatchHistoryEntry entry)
+        {
+            _playback.Play(_session.BuildWatchUrl(entry), entry);
             StatusTextBlock.Text = "Playback started.";
         }
 
-        private void OpenVlcOverlay(string url)
+        private void OpenVlcOverlay(WatchHistoryEntry entry)
         {
+            string url = _session.BuildWatchUrl(entry);
+            _playback.Stop();
             MainPage.Current?.ShowOverlay(typeof(VlcFullscreenPage), new VlcPlaybackRequest
             {
-                Title = _selectedItem?.Name ?? "VLC",
-                Subtitle = _selectedItem?.Subtitle ?? url,
-                Url = url
+                Title = entry.Title,
+                Subtitle = entry.Subtitle,
+                Url = url,
+                WatchEntry = entry
             });
         }
 
-        private void ShowBuiltinPlayer()
+        private void CopyUrlToClipboard(string url, string statusMessage)
         {
-            PlayerElement.Visibility = Visibility.Visible;
-            PlayerElement.IsHitTestVisible = true;
-            VlcPlayerView.Visibility = Visibility.Collapsed;
-            VlcPlayerView.IsHitTestVisible = false;
-        }
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                StatusTextBlock.Text = "No URL available to copy.";
+                return;
+            }
 
-        private void ShowVlcPlayer()
-        {
-            PlayerElement.Visibility = Visibility.Collapsed;
-            PlayerElement.IsHitTestVisible = false;
-            VlcPlayerView.Visibility = Visibility.Visible;
-            VlcPlayerView.IsHitTestVisible = true;
-            VlcPlayerView.MediaPlayer.Fullscreen = true;
-        }
-
-        private void StopBuiltinPlayer()
-        {
-            _player.Pause();
-            _player.Source = null;
-        }
-
-        private void StopVlcPlayer()
-        {
-            _vlcPlayer?.Stop();
-            _currentVlcMedia?.Dispose();
-            _currentVlcMedia = null;
+            var dataPackage = new DataPackage();
+            dataPackage.SetText(url);
+            Clipboard.SetContent(dataPackage);
+            Clipboard.Flush();
+            StatusTextBlock.Text = statusMessage;
+            SelectionTextBlock.Text = $"{SelectionTextBlock.Text}\n{url}";
         }
     }
 }

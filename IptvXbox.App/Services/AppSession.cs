@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -204,6 +205,68 @@ namespace IptvXbox.App.Services
         public string BuildSeriesEpisodeUrl(SeriesEpisode episode)
         {
             return _providerClient.BuildSeriesEpisodeUrl(Connection.Server, Connection.Username, Connection.Password, episode);
+        }
+
+        public WatchHistoryEntry CreateWatchEntry(CatalogItem item, SeriesEpisode episode = null, int? seasonNumber = null)
+        {
+            if (episode != null)
+            {
+                string episodeLabel = seasonNumber.HasValue
+                    ? $"Season {seasonNumber.Value} · Episode {episode.EpisodeNumber}"
+                    : $"Episode {episode.EpisodeNumber}";
+
+                return new WatchHistoryEntry
+                {
+                    ProfileKey = WatchHistory.GetProfileKey(Connection),
+                    Title = string.IsNullOrWhiteSpace(episode.Title) ? item.Name : $"{item.Name} · {episode.Title}",
+                    Subtitle = episodeLabel,
+                    ImageUrl = item.ImageUrl,
+                    StreamKind = "Episode",
+                    StreamId = episode.Id ?? string.Empty,
+                    SeriesId = item.SeriesId,
+                    ContainerExtension = episode.ContainerExtension
+                };
+            }
+
+            return new WatchHistoryEntry
+            {
+                ProfileKey = WatchHistory.GetProfileKey(Connection),
+                Title = item.Name,
+                Subtitle = item.Subtitle,
+                ImageUrl = item.ImageUrl,
+                StreamKind = item.StreamKind,
+                StreamId = item.StreamId.ToString(CultureInfo.InvariantCulture),
+                ContainerExtension = item.ContainerExtension
+            };
+        }
+
+        public IReadOnlyList<WatchHistoryEntry> GetWatchHistory()
+        {
+            return WatchHistory.Current.GetRecent(WatchHistory.GetProfileKey(Connection));
+        }
+
+        public string BuildWatchUrl(WatchHistoryEntry entry)
+        {
+            if (entry.ProfileKey != WatchHistory.GetProfileKey(Connection))
+            {
+                throw new InvalidOperationException("This entry belongs to a different IPTV connection.");
+            }
+
+            if (entry.StreamKind == "Episode")
+            {
+                return BuildSeriesEpisodeUrl(new SeriesEpisode
+                {
+                    Id = entry.StreamId,
+                    ContainerExtension = entry.ContainerExtension
+                });
+            }
+
+            return BuildStreamUrl(new CatalogItem
+            {
+                StreamKind = entry.StreamKind,
+                StreamId = long.Parse(entry.StreamId, CultureInfo.InvariantCulture),
+                ContainerExtension = entry.ContainerExtension
+            });
         }
 
         public async Task<SeriesInfoResponse> GetSeriesInfoAsync(CatalogItem item, CancellationToken cancellationToken)
