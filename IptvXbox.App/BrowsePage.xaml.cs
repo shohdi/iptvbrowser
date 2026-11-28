@@ -3,6 +3,7 @@ using IptvXbox.App.Services;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.DataTransfer;
@@ -20,8 +21,8 @@ namespace IptvXbox.App
         private BuiltinPlayback _playback;
         private BrowseNode _currentNode;
         private CatalogItem _selectedSeries;
-        private SeriesEpisode _selectedEpisode;
         private WatchHistoryEntry _selectedWatchEntry;
+        private int _selectionVersion;
         private bool _isViewReady;
 
         public BrowsePage()
@@ -47,6 +48,7 @@ namespace IptvXbox.App
         private void BrowsePage_Unloaded(object sender, RoutedEventArgs e)
         {
             _isViewReady = false;
+            ClearItemSelection();
             _session.PropertyChanged -= Session_PropertyChanged;
             _playback?.Stop();
             PlayerElement.SetMediaPlayer(null);
@@ -160,7 +162,7 @@ namespace IptvXbox.App
 
             if (card.WatchEntry != null)
             {
-                SelectWatchEntry(card.WatchEntry);
+                await HandleWatchEntrySelectionAsync(card.WatchEntry);
                 return;
             }
 
@@ -170,7 +172,20 @@ namespace IptvXbox.App
             }
         }
 
-        private async Task HandleItemSelectionAsync(CatalogItem item)
+        private Task HandleWatchEntrySelectionAsync(WatchHistoryEntry entry)
+        {
+            if (entry.StreamKind == "Episode" && entry.SeriesId > 0)
+            {
+                CatalogItem series = _session.AllItems.FirstOrDefault(item => item.SeriesId == entry.SeriesId)
+                    ?? new CatalogItem { SeriesId = entry.SeriesId, ImageUrl = entry.ImageUrl };
+                return HandleItemSelectionAsync(series, entry);
+            }
+
+            SelectWatchEntry(entry);
+            return Task.CompletedTask;
+        }
+
+        private async Task HandleItemSelectionAsync(CatalogItem item, WatchHistoryEntry resumeEntry = null)
         {
             if (!_session.HasCredentials)
             {
@@ -180,13 +195,11 @@ namespace IptvXbox.App
 
             if (item.IsSeries)
             {
+                ClearItemSelection();
                 _selectedSeries = item;
-                _selectedEpisode = null;
-                _selectedWatchEntry = null;
-                SelectionTextBlock.Text = $"{item.Name}\n{item.Subtitle}";
+                SelectionTextBlock.Text = item.Name == null ? resumeEntry?.Title : $"{item.Name}\n{item.Subtitle}";
                 _playback?.Stop();
-                PlaybackButtonsPanel.Visibility = Visibility.Collapsed;
-                await LoadSeriesAsync(item);
+                await LoadSeriesAsync(item, resumeEntry);
                 return;
             }
 
@@ -201,38 +214,75 @@ namespace IptvXbox.App
                 return;
             }
 
-            _selectedSeries = null;
-            _selectedEpisode = null;
+            ClearItemSelection();
             _selectedWatchEntry = entry;
             _playback?.Stop();
             SelectionTextBlock.Text = $"{entry.Title}\n{GetWatchSubtitle(entry)}";
-            SeriesSelectorsPanel.Visibility = Visibility.Collapsed;
             PlaybackButtonsPanel.Visibility = Visibility.Visible;
             StatusTextBlock.Text = "Choose Play or Play on VLC.";
         }
 
-        private async Task LoadSeriesAsync(CatalogItem item)
+        private async Task LoadSeriesAsync(CatalogItem item, WatchHistoryEntry resumeEntry)
         {
-            SeriesSelectorsPanel.Visibility = Visibility.Collapsed;
+            int selectionVersion = _selectionVersion;
             StatusTextBlock.Text = "Loading series episodes...";
 
             try
             {
                 SeriesInfoResponse response = await _session.GetSeriesInfoAsync(item, CancellationToken.None);
-                if (!_isViewReady || !ReferenceEquals(_selectedSeries, item))
+                if (!_isViewReady || _selectionVersion != selectionVersion)
                 {
                     return;
                 }
 
                 List<SeasonOption> seasons = response.GetSeasonOptions();
+                SeasonOption savedSeason = null;
+                SeriesEpisode savedEpisode = null;
+                if (!string.IsNullOrEmpty(resumeEntry?.StreamId))
+                {
+                    foreach (SeasonOption season in seasons)
+                    {
+                        savedEpisode = season.Episodes.FirstOrDefault(episode => episode?.Id == resumeEntry.StreamId);
+                        if (savedEpisode != null)
+                        {
+                            savedSeason = season;
+                            break;
+                        }
+                    }
+                }
+
+                if (item.Name == null && resumeEntry != null)
+                {
+                    // Existing history includes the episode title when the catalog is unavailable.
+                    string suffix = $" · {savedEpisode?.Title}";
+                    item.Name = !string.IsNullOrWhiteSpace(savedEpisode?.Title) &&
+                        resumeEntry.Title.EndsWith(suffix, StringComparison.Ordinal)
+                        ? resumeEntry.Title.Substring(0, resumeEntry.Title.Length - suffix.Length)
+                        : resumeEntry.Title;
+                    SelectionTextBlock.Text = item.Name;
+                }
+
                 SeasonComboBox.ItemsSource = seasons;
-                SeasonComboBox.SelectedIndex = seasons.Count > 0 ? 0 : -1;
-                SeriesSelectorsPanel.Visibility = seasons.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-                StatusTextBlock.Text = seasons.Count > 0 ? "Choose a season and episode, then Play or Play on VLC." : "No episodes found.";
+                SeasonComboBox.SelectedItem = savedSeason ?? seasons.FirstOrDefault();
+                if (resumeEntry != null)
+                {
+                    EpisodeComboBox.SelectedItem = savedEpisode;
+                }
+
+                if (seasons.Count == 0)
+                {
+                    StatusTextBlock.Text = "No episodes found.";
+                    return;
+                }
+
+                SeriesSelectorsPanel.Visibility = Visibility.Visible;
+                StatusTextBlock.Text = resumeEntry != null && savedEpisode == null
+                    ? "Saved episode unavailable. Choose another episode."
+                    : "Choose a season and episode, then Play or Play on VLC.";
             }
             catch (Exception ex)
             {
-                if (_isViewReady && ReferenceEquals(_selectedSeries, item))
+                if (_isViewReady && _selectionVersion == selectionVersion)
                 {
                     StatusTextBlock.Text = $"Series load failed: {ex.Message}";
                 }
@@ -263,25 +313,19 @@ namespace IptvXbox.App
 
         private void ClearItemSelection()
         {
+            _selectionVersion++;
             _selectedSeries = null;
-            _selectedEpisode = null;
             _selectedWatchEntry = null;
+            SeasonComboBox.ItemsSource = null;
             PlaybackButtonsPanel.Visibility = Visibility.Collapsed;
             SeriesSelectorsPanel.Visibility = Visibility.Collapsed;
         }
 
         private void SeasonComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (SeasonComboBox.SelectedItem is SeasonOption season)
-            {
-                EpisodeComboBox.ItemsSource = season.Episodes;
-                EpisodeComboBox.SelectedIndex = season.Episodes.Count > 0 ? 0 : -1;
-            }
-        }
-
-        private void EpisodeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            _selectedEpisode = EpisodeComboBox.SelectedItem as SeriesEpisode;
+            List<SeriesEpisode> episodes = (SeasonComboBox.SelectedItem as SeasonOption)?.Episodes;
+            EpisodeComboBox.ItemsSource = episodes;
+            EpisodeComboBox.SelectedIndex = episodes?.Count > 0 ? 0 : -1;
         }
 
         private void PlayEpisodeButton_Click(object sender, RoutedEventArgs e) =>
@@ -294,8 +338,9 @@ namespace IptvXbox.App
             CopyUrlToClipboard(GetSelectedEpisodeEntry(), "Episode URL copied.");
 
         private WatchHistoryEntry GetSelectedEpisodeEntry() =>
-            _selectedSeries != null && _selectedEpisode != null && SeasonComboBox.SelectedItem is SeasonOption season
-                ? _session.CreateWatchEntry(_selectedSeries, _selectedEpisode, season.SeasonNumber)
+            _selectedSeries != null && SeasonComboBox.SelectedItem is SeasonOption season &&
+                EpisodeComboBox.SelectedItem is SeriesEpisode episode
+                ? _session.CreateWatchEntry(_selectedSeries, episode, season.SeasonNumber)
                 : null;
 
         private void PlayEntry(WatchHistoryEntry entry, bool useVlc)

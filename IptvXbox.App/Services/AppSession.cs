@@ -40,6 +40,7 @@ namespace IptvXbox.App.Services
             private set
             {
                 _connection = value;
+                _seriesCache.Clear();
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(HasCredentials));
             }
@@ -274,13 +275,17 @@ namespace IptvXbox.App.Services
             string cacheKey = item.SeriesId.ToString();
             if (!_seriesCache.TryGetValue(cacheKey, out SeriesInfoResponse response))
             {
+                ConnectionSettings connection = Connection;
                 response = await _providerClient.FetchSeriesInfoAsync(
-                    Connection.Server,
-                    Connection.Username,
-                    Connection.Password,
+                    connection.Server,
+                    connection.Username,
+                    connection.Password,
                     item.SeriesId,
                     cancellationToken);
-                _seriesCache[cacheKey] = response;
+                if (ReferenceEquals(Connection, connection))
+                {
+                    _seriesCache[cacheKey] = response;
+                }
             }
 
             return response;
