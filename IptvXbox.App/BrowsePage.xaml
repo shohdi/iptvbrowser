@@ -159,8 +159,7 @@
                                   Header="Season"
                                   SelectionChanged="SeasonComboBox_SelectionChanged" />
                         <ComboBox x:Name="EpisodeComboBox"
-                                  Header="Episode"
-                                  SelectionChanged="EpisodeComboBox_SelectionChanged" />
+                                  Header="Episode" />
                         <Button Content="Play Episode" Click="PlayEpisodeButton_Click" />
                         <Button Content="Play Episode on VLC" Click="PlayEpisodeWithVlcButton_Click" />
                         <Button Content="Copy Episode URL" Click="CopyEpisodeUrlButton_Click" />
